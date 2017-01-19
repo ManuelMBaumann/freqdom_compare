@@ -20,4 +20,4 @@ References
 ----------
 * [M. Baumann and M.B. Van Gijzen. Efficient iterative methods for multi-frequency wave propagation problems: A comparison study. To appear: Proceedings of INTERNATIONAL CONFERENCE ON COMPUTATIONAL SCIENCE 2017](/literature/iccs17_report.pdf)
 
-[BvG17:] /literature/iccs17_report.pdf
+[BvG17]: /literature/iccs17_report.pdf
