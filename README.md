@@ -10,7 +10,7 @@ Dependencies
 -------------
 * [nutils](http://www.nutils.org/):  `pip install git+https://github.com/joostvanzwieten/nutils@955bc67d219496e26b037f47855709a222850d7c`
 * [PyAMG](http://pyamg.org/): `pip install --upgrade pyamg`
-* 
+* NumPy [v 1.8.2], SciPy [v 0.14.0], matplotlib [v 1.4.2]
 
 Declaration
 -----------
