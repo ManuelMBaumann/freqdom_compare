@@ -2,9 +2,9 @@ Python code for the numerical experiments presented in [BvG17].
 
 Usage
 ------
-The code is stored in the subfolder `/python_code`. From command line:
+The code is stored in the subfolder `/python_code`. All experiments can be reproduced with a single run from the command line. For example:
 
-`python3 elast_squares.py --ndims=3 --dx=50 --dy=50 --dz=50 `
+`python3 elast_squares.py --dx=30 --dz=30 --dy=30 --nprocs=4 --plots=True --damping=0.0 --dg_pp=0 --freq=[1.0,2.0] --Nom=5 -ndims=3 --block=True --tol=1e-8 --solver_flag=1`
 
 Dependencies
 -------------
