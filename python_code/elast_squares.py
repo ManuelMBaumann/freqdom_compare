@@ -228,32 +228,6 @@ def main( ndims=2,           # problem dimension (2,3)
               sol[k,:] = lu.solve(rhs)
               print('solve:'+str(time.time()-t0_solve))
           else:
-              #print('Use AMG+GMRES')
-              #A = A.tocsr()
-              #class gmres_counter(object):
-                  #def __init__(self, disp=True):
-                      #self._disp = disp
-                      #self.resvec=[]
-                      #self.niter = 0
-                  #def __call__(self, rk=None):
-                      #self.niter += 1
-                      #self.resvec.append(rk)
-                      #if self._disp:
-                          #print('iter %3i\trk = %s' % (self.niter, str(rk)))    
-              #t0_lu = time.time()
-              ##invA = pyamg.ruge_stuben_solver(A)  
-              #invA = pyamg.smoothed_aggregation_solver(A, max_levels=8, max_coarse=1, keep=True)
-              #print(invA) 
-              #invA_x = lambda x: invA.solve(x, tol=1e-1)
-              #amg = spla.LinearOperator(A.shape, invA_x)
-              #print('amg setup:'+str(time.time()-t0_lu))
-              #t0_solve = time.time()
-              #counter = gmres_counter(disp=True)
-              #sol[k,:], info = spla.gmres(A, rhs, tol=1e-16, restart=200, maxiter=300, M=amg, callback=counter)
-              #it = info
-              #print('GMRES time:'+str(time.time()-t0_solve))
-              #print('GMRES info:'+str(counter.niter)+' -- '+str(counter.resvec[-1]))
-              
               print('Use ILU+GMRES')
               class gmres_counter(object):
                   def __init__(self, disp=True):
@@ -276,14 +250,6 @@ def main( ndims=2,           # problem dimension (2,3)
               it = info
               print('GMRES time:'+str(time.time()-t0_solve))
               print('GMRES info:'+str(counter.niter)+' -- '+str(counter.resvec[-1]))
-              
-              #print('Use SuperLU')
-              #t0_lu = time.time()
-              #lu = spla.splu(A)
-              #print('decom:'+str(time.time()-t0_lu))
-              #t0_solve = time.time()
-              #sol[k,:] = lu.solve(rhs)
-              #print('solve:'+str(time.time()-t0_solve))
           
   te = time.time()
   print('No iterations: '+str(it)+'     CPU time: '+str(te-t0))        
