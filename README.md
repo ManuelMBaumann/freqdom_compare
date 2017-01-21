@@ -4,7 +4,9 @@ Usage
 ------
 The code is stored in the subfolder `/python_code`. All experiments can be reproduced with a single run from the command line. For example:
 
-`python3 elast_squares.py --dx=30 --dz=30 --dy=30 --damping=0.0 --dg_pp=0 --freq=[1.0,2.0] --Nom=5 --ndims=3 --block=True --tol=1e-8 --solver_flag=1`
+`python3 elast_squares.py --ndims=3 --dx=30 --dy=30 --dz=30 --freq=[1.0,9.0] --Nom=5 --degree=1 --damping=0.0 --maxit=300 --maxit_i=20
+                          --tol=1e-8 --tol_i=1e-1 --dg_pp=0 --tau_re=0.7 -tau_im=-0.3 iLU=True --fill_factor=10.0 --block=True
+                          --plots=True --plot_resnrm=True --solver_flag=2 --nprocs=8`
 
 Dependencies
 -------------
@@ -18,6 +20,6 @@ The [author](http://www.manuelbaumann.de) is a PhD student in Numerical Analysis
 
 References
 ----------
-* [Manuel Baumann and Martin B. Van Gijzen. Efficient iterative methods for multi-frequency wave propagation problems: A comparison study. To appear: Proceedings of INTERNATIONAL CONFERENCE ON COMPUTATIONAL SCIENCE 2017](/literature/iccs17_report.pdf)
+* [Manuel Baumann and Martin B. Van Gijzen. *Efficient iterative methods for multi-frequency wave propagation problems: A comparison study*. To appear: Proceedings of INTERNATIONAL CONFERENCE ON COMPUTATIONAL SCIENCE 2017](/literature/iccs17_report.pdf)
 
 [BvG17]: /literature/iccs17_report.pdf
