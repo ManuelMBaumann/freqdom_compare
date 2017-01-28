@@ -193,7 +193,7 @@ def me_driver(K, C, M, b, freq, tau, damping, tol, maxit, iLU, fill_factor, plot
     Om  = sparse.diags(om,0)
     tau = tau*max(om.real)
     if tau.real<0.0:
-       tau = opt_tau_anal(0.0,min(om.real),max(om.real))
+       tau = opt_tau_anal(damping,min(om.real),max(om.real))
     B = (b*np.ones((len(om),1))).T   
     A = vG_op(K, C, M, Om)
     
