@@ -9,6 +9,15 @@ import scipy.sparse.linalg as spla
 import time
 import pyamg
 
+class convergenceHistory:
+    def __init__(self, plot_resnrm=False):
+        self.resvec = []
+        self.plot_resnrm = plot_resnrm
+    def callback(self, _rnrm_):
+        self.resvec.append(_rnrm_)
+        if self.plot_resnrm:
+            print(str(len(self.resvec))+' - '+str(_rnrm_))
+
 def pascal(n):
     if n==0:
         return [1]
@@ -19,7 +28,9 @@ def pascal(n):
 def polypre( dg_pp, eta, tau ):
     Nom    = len(eta)
     center = -np.conj(tau)/(tau-np.conj(tau))
+    radius = abs(tau/(tau-np.conj(tau))) 
     omega  = 1.0/center
+    #omega  = (1.0/center - 1.0/(2*radius)) 
 
     # convert to a monic representation:
     coeffs = np.zeros((dg_pp+1,dg_pp+1), dtype=complex)
@@ -128,6 +139,7 @@ def poly_driver( K, C, M, rhs, freq, tau, damping, tol, maxit, dg_pp, iLU, fill_
                 te = time.time()
                 if timing:
                     print('LU decomposition:'+str(te-t0)) 
+                    print('tau = '+str(tau))
             def solve(self, x):
                 n  = len(x)
                 x1 = x[n//2:]
@@ -157,6 +169,7 @@ def poly_driver( K, C, M, rhs, freq, tau, damping, tol, maxit, dg_pp, iLU, fill_
                 te = time.time()
                 if timing:
                     print('iLU({}) decomposition:'.format(fill_factor)+str(te-t0))
+                    print('tau = '+str(tau))
             def solve(self, x):
                 n  = len(x)
                 x1 = x[n//2:]
@@ -173,43 +186,43 @@ def poly_driver( K, C, M, rhs, freq, tau, damping, tol, maxit, dg_pp, iLU, fill_
                     X[:,i] = (1.0-self.eta[i])*X[:,i]
                 return X[N//2:,:]
             
-        class shift_precon_amg:
-            def __init__(self, K, C, M, tau, tol=1e-1, timing=True):
-                self.C = C
-                self.M = M
-                self.tau = tau
-                self.eta = eta
-                self.P = K+1j*tau*C-tau**2*M
-                t0 = time.time()
-                self.settings = {"max_levels": 8,
-                                 "max_coarse": 1,
-                                 "keep": False,
-                                 "presmoother": ("gauss_seidel",
-                                         {"sweep": "symmetric"}),
-                                  "postsmoother": ("gauss_seidel",
-                                         {"sweep": "symmetric"})}
-                Pinv = pyamg.smoothed_aggregation_solver(self.P.tocsr(), **self.settings)
-                Pinv_x = lambda x: Pinv.solve(x, tol=1e-2, maxiter=100, cycle='V', accel=None) 
-                self.Pinv = spla.LinearOperator(self.P.shape, Pinv_x)
-                te = time.time()
-                if timing:
-                    print(Pinv)
-                    print('AMG setup:'+str(te-t0))
-            def solve(self, x):
-                n  = len(x)
-                x1 = x[n//2:]
-                x2 = x[:n//2] + (-1j*self.C*x[n//2:] + self.tau*self.M*x[n//2:])
-                x2, info = spla.gmres(self.P, x2, tol=1e-16, restart=200, maxiter=600, M=self.Pinv)
-                assert(info==0) # apply shift-and-invert exactly
-                x1 = x1 + self.tau*x2
-                return np.concatenate((x1,x2))
-            def resub(self, X):
-                N   = X.shape[0]
-                Nom = X.shape[1]
-                for i in range(Nom):
-                    X[:,i] = self.solve(X[:,i])
-                    X[:,i] = (1.0-self.eta[i])*X[:,i]
-                return X[N//2:,:]
+        #class shift_precon_amg:
+            #def __init__(self, K, C, M, tau, tol=1e-1, timing=True):
+                #self.C = C
+                #self.M = M
+                #self.tau = tau
+                #self.eta = eta
+                #self.P = K+1j*tau*C-tau**2*M
+                #t0 = time.time()
+                #self.settings = {"max_levels": 8,
+                                 #"max_coarse": 1,
+                                 #"keep": False,
+                                 #"presmoother": ("gauss_seidel",
+                                         #{"sweep": "symmetric"}),
+                                  #"postsmoother": ("gauss_seidel",
+                                         #{"sweep": "symmetric"})}
+                #Pinv = pyamg.smoothed_aggregation_solver(self.P.tocsr(), **self.settings)
+                #Pinv_x = lambda x: Pinv.solve(x, tol=1e-2, maxiter=100, cycle='V', accel=None) 
+                #self.Pinv = spla.LinearOperator(self.P.shape, Pinv_x)
+                #te = time.time()
+                #if timing:
+                    #print(Pinv)
+                    #print('AMG setup:'+str(te-t0))
+            #def solve(self, x):
+                #n  = len(x)
+                #x1 = x[n//2:]
+                #x2 = x[:n//2] + (-1j*self.C*x[n//2:] + self.tau*self.M*x[n//2:])
+                #x2, info = spla.gmres(self.P, x2, tol=1e-16, restart=200, maxiter=600, M=self.Pinv)
+                #assert(info==0) # apply shift-and-invert exactly
+                #x1 = x1 + self.tau*x2
+                #return np.concatenate((x1,x2))
+            #def resub(self, X):
+                #N   = X.shape[0]
+                #Nom = X.shape[1]
+                #for i in range(Nom):
+                    #X[:,i] = self.solve(X[:,i])
+                    #X[:,i] = (1.0-self.eta[i])*X[:,i]
+                #return X[N//2:,:]
 
         class poly_precon:
             def __init__(self, A, P, dg_pp, tau, eta):
@@ -277,6 +290,7 @@ def poly_driver( K, C, M, rhs, freq, tau, damping, tol, maxit, dg_pp, iLU, fill_
                 te = time.time()
                 if timing:
                     print('LU decomposition:'+str(te-t0))
+                    print('tau = '+str(tau))
             def solve(self, x):
                 return self.P.solve(x)
             def resub(self, X):
@@ -296,7 +310,8 @@ def poly_driver( K, C, M, rhs, freq, tau, damping, tol, maxit, dg_pp, iLU, fill_
                 self.Pinv = spla.LinearOperator(self.P.shape, Pinv_x)
                 te = time.time()
                 if timing:
-                    print('iLU({}) decomposition:'.format(fill_factor)+str(te-t0))   
+                    print('iLU({}) decomposition:'.format(fill_factor)+str(te-t0))  
+                    print('tau = '+str(tau))
             def solve(self, x):
                 y, info = spla.gmres(self.P, x, tol=1e-16, restart=200, maxiter=600, M=self.Pinv)
                 assert(info==0) # apply shift-and-invert exactly
@@ -354,19 +369,11 @@ def poly_driver( K, C, M, rhs, freq, tau, damping, tol, maxit, dg_pp, iLU, fill_
         b  = rhs
         
 
-    class convergenceHistory:
-        def __init__(self, plot_resnrm=False):
-            self.resvec = []
-            self.plot_resnrm = plot_resnrm
-        def callback(self, _rnrm_):
-            self.resvec.append(_rnrm_)
-            if self.plot_resnrm:
-                print(str(len(self.resvec))+' - '+str(_rnrm_))
     
     res     = convergenceHistory(plot_resnrm=plot_resnrm)
     y, it, resnrm = msgmres( A, Pl, Pr, b, Pl.eta_k, tau, tol, maxit, callback=res.callback )
     x = Pr.resub( Pl.resub(y) )
-    plot_convergence(resnrm)
+    plot_msconvergence(resnrm)
     
     return x.T, it
   
@@ -503,6 +510,7 @@ def nested_driver( K, C, M, rhs, freq, tau, damping, tol_i, tol_o, maxit_i, maxi
                 te = time.time()
                 if timing:
                     print('LU decomposition:'+str(te-t0))
+                    print('tau = '+str(tau))
             def solve(self, x):
                 n  = len(x)
                 x1 = x[n//2:]
@@ -532,6 +540,7 @@ def nested_driver( K, C, M, rhs, freq, tau, damping, tol_i, tol_o, maxit_i, maxi
                 te = time.time()
                 if timing:
                     print('iLU({}) decomposition:'.format(fill_factor)+str(te-t0))   
+                    print('tau = '+str(tau))
             def solve(self, x):
                 n  = len(x)
                 x1 = x[n//2:]
@@ -582,6 +591,7 @@ def nested_driver( K, C, M, rhs, freq, tau, damping, tol_i, tol_o, maxit_i, maxi
                 te = time.time()
                 if timing:
                     print('LU decomposition:'+str(te-t0))
+                    print('tau = '+str(tau))
             def solve(self, x):
                 return self.P.solve(x)
             def resub(self, X):
@@ -602,6 +612,7 @@ def nested_driver( K, C, M, rhs, freq, tau, damping, tol_i, tol_o, maxit_i, maxi
                 te = time.time()
                 if timing:
                     print('iLU({}) decomposition:'.format(fill_factor)+str(te-t0))   
+                    print('tau = '+str(tau))
             def solve(self, x):
                 y, info = spla.gmres(self.P, x, tol=1e-16, restart=200, maxiter=600, M=self.Pinv)
                 assert(info==0) # apply shift-and-invert exactly
@@ -620,6 +631,7 @@ def nested_driver( K, C, M, rhs, freq, tau, damping, tol_i, tol_o, maxit_i, maxi
         if tau.real<0.0:
             #tau = opt_tau_anal(damping, min(om.real), max(om.real) )
             tau = opt_tau_anal(2.0*damping/(1.0-damping**2), min(om.real), max(om.real))
+        om  = om - base
         eta = om/(om-(tau-base))
         
         A  = make_sys( K, C, M, base )
@@ -630,19 +642,11 @@ def nested_driver( K, C, M, rhs, freq, tau, damping, tol_i, tol_o, maxit_i, maxi
         b  = rhs
        
        
-    class convergenceHistory:
-        def __init__(self, plot_resnrm=False):
-            self.resvec = []
-            self.plot_resnrm = plot_resnrm
-        def callback(self, _rnrm_):
-            self.resvec.append(_rnrm_)
-            if self.plot_resnrm:
-                print(str(len(self.resvec))+' - '+str(_rnrm_))
       
     res     = convergenceHistory(plot_resnrm=plot_resnrm)
     y, it, resnrm = fmsgmres( A, P, b, eta, tau, tol_i, tol_o, maxit_i, maxit_o, callback=res.callback )
     x = P.resub( y )
 
-    plot_convergence(resnrm)
+    plot_msconvergence(resnrm)
 
     return x.T, it

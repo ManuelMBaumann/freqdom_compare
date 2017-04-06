@@ -3,30 +3,68 @@ import matplotlib.pyplot as plt
 #import scipy.io as io
 import numpy as np 
 import scipy.sparse.linalg as spla
-import pyamg
+#import pyamg
 from math import sqrt, atan, cos, sin, pi, atan2
 from numpy.linalg import norm
 #from scipy.io import mmwrite
 from nutils import *
 from numpy.linalg import solve
 from scipy.linalg.blas import get_blas_funcs
-#from mskrylov import opt_tau_anal
-from plot_misc import opt_tau_anal
+from plot_misc import *
 import time
+import cmath
 
-def plot_rel_convergence(resvec):
-    it = len(resvec)
-    x_as = np.linspace(0,it,it)
+class convergenceHistory:
+    def __init__(self, plot_resnrm=True):
+        self.resvec = []
+        self.plot_resnrm = plot_resnrm
+    def callback(self, _rnrm_):
+        self.resvec.append(_rnrm_)
+        if self.plot_resnrm:
+            print(str(len(self.resvec))+' - '+str(_rnrm_))
+
+class __NoPrecond__(object):
+    def solve(self,_X_): return _X_
+
+#def plot_rel_convergence(resvec):
+    #it = len(resvec)
+    #x_as = np.linspace(0,it,it)
     
-    with plot.PyPlot( 'conv_megmres', figsize=(10,10)) as plt:
-        plt.semilogy(x_as, resvec[:]/resvec[0])
-        plt.title('Convergence of global GMRES')       
-        plt.xlabel('Number of operator applications')
-        plt.ylabel('Relative residual norm')
-        plt.ylim((1e-8,1))
-        plt.grid()
-        
-        
+    #with plot.PyPlot( 'conv_megmres', figsize=(10,10)) as plt:
+        #plt.semilogy(x_as, resvec[:]/resvec[0])
+        #plt.title('Convergence of global GMRES')       
+        #plt.xlabel('Number of operator applications')
+        #plt.ylabel('Relative residual norm')
+        #plt.ylim((1e-8,1))
+        #plt.grid()        
+
+def vectorize_me(A, P=None):
+    # simplified for right operators being diag matrices
+    Pflag = 0
+    if P==None:
+        P = __NoPrecond__()
+        Pflag = 1
+    
+    N   = A.K.shape[0]
+    Nom = A.Om.shape[0]
+    Eij = np.zeros((N,Nom), dtype=complex)
+    A_blk = np.zeros((N*Nom,N*Nom), dtype=complex)  
+    for i in range(N):
+        for j in range(Nom):
+            Eij[i,j] = 1.0
+            A_blk[j*N:(j+1)*N,i+j*N] = A.dot(P.solve(Eij))[:,j]
+            Eij[i,j] = 0.0
+            
+    with plot.PyPlot( 'blk_eigs', figsize=(10,10)) as plt:
+        vals = np.linalg.eigvals(A_blk)
+        plt.plot(vals.real, vals.imag, 'bx', markersize=4)
+        plt.axhline(linewidth=0.5, color='k')
+        plt.axvline(linewidth=0.5, color='k')
+        plt.axis('equal')
+    if Pflag==1:
+        with plot.PyPlot( 'blk_spy', ndigits=0 ) as plt:    
+            plt.spy( A_blk, markersize=0.8, precision=0.05)
+
 def megmres(A, B, m=200, X0=None, tol=1e-8, maxit=None, M1=None, callback=None):
     size = B.shape
     if maxit is None:
@@ -128,19 +166,22 @@ def megmres(A, B, m=200, X0=None, tol=1e-8, maxit=None, M1=None, callback=None):
     return X, info
 
 
-
-def me_driver(K, C, M, b, freq, tau, damping, tol, maxit, iLU, fill_factor, plot_resnrm):
-    
+def me_driver(K, C, M, b, freq, tau, damping, tol, maxit, iLU, rot, fill_factor, plot_resnrm):
+                         
     class vG_op:
-        def __init__(self, K, C, M, Om):
+        def __init__(self, K, C, M, Om, P):
             self.K  = K
             self.C  = C
             self.M  = M
             self.Om = Om
+            self.P  = P
             self.type = complex
         def dot(self, X):
+            X =  self.P.solve(X)
             return self.K.dot(X) + 1j*( self.C.dot( ((self.Om).dot(X.T)).T ) ) - self.M.dot( ((self.Om**2).dot(X.T)).T )
-
+        def resub(self, X):
+            return self.P.solve(X)
+        
     class precon:
         def __init__(self, K, C, M, tau, timing=False):
             P       = K+1j*tau*C-tau**2*M
@@ -149,8 +190,9 @@ def me_driver(K, C, M, b, freq, tau, damping, tol, maxit, iLU, fill_factor, plot
             te = time.time()
             if timing:
                 print('LU decomposition:'+str(te-t0))
+                print('tau = '+str(tau))
         def solve(self, X):
-            return self.P.solve(X)
+            return self.P.solve(X) 
         
     class precon_ilu:
         def __init__(self, K, C, M, tau, fill_factor=1.0, timing=False):
@@ -160,54 +202,70 @@ def me_driver(K, C, M, b, freq, tau, damping, tol, maxit, iLU, fill_factor, plot
             te = time.time()
             if timing:
                 print('iLU({}) decomposition:'.format(fill_factor)+str(te-t0))
+                print('tau = '+str(tau))
         def solve(self, X):
             return self.P.solve(X) 
         
-    class precon_amg:
-        def __init__(self, K, C, M, tau, tol=1e-1, timing=False):
-            P        = K+1j*tau*C-tau**2*M
-            t0 = time.time()
-            self.P   = pyamg.smoothed_aggregation_solver(P.tocsr(), max_levels=8, max_coarse=1, keep=True)
-            te = time.time()
-            self.tol = tol
-            if timing:
-                print(self.P)
-                print('AMG setup:'+str(te-t0))
+    class rot_precon:
+        def __init__(self, eta, tau):
+            c1   = (0-np.conj(tau))/(tau-np.conj(tau)) - eta[0]
+            phi1 = cmath.polar(c1)[1]
+            rot  = np.ones((len(eta),), dtype=complex)
+            for k in range(0,len(eta)):
+                ck     = (0-np.conj(tau))/(tau-np.conj(tau)) - eta[k]
+                phik   = cmath.polar(ck)[1]
+                rot[k] = np.exp(-1j*(phik-phi1))
+            self.R  = sparse.diags(rot,0)        
+            self.IE = sparse.identity(len(eta)) - sparse.diags(eta,0)
         def solve(self, X):
-            Y = np.empty(X.shape, dtype=complex)
-            for k in range(X.shape[1]):
-                Y[:,k] = self.P.solve(X[:,k], maxiter=10, cycle='V', accel=None) 
-            return Y
+            #return (self.IE.dot(X.T)).T
+            return (self.IE.dot(self.R.dot(X.T))).T
         
-    class convergenceHistory:
-        def __init__(self, plot_resnrm=False):
-            self.resvec = []
-            self.plot_resnrm = plot_resnrm
-        def callback(self, _rnrm_):
-            self.resvec.append(_rnrm_)
-            if self.plot_resnrm:
-                print(str(len(self.resvec))+' - '+str(_rnrm_))
 
-
+         
     om  = 2.0*pi*freq*(1.0-1j*damping)
     Om  = sparse.diags(om,0)
-    tau = tau*max(om.real)
+    
     if tau.real<0.0:
-       tau = opt_tau_anal(damping,min(om.real),max(om.real))
-    B = (b*np.ones((len(om),1))).T   
-    A = vG_op(K, C, M, Om)
-    
-    if not iLU:
-        P = precon(K, C, M, tau, timing=True)
+        #tau = opt_tau_anal( damping, min(om.real), max(om.real) )
+        tau2 = opt_tau_anal( 2.0*damping/(1.0-damping**2), (1.0-dampin**2)*min((2.0*pi*freq)**2), (1.0-dampin**2)*max((2.0*pi*freq)**2) )
+        tau  = np.sqrt(tau2)
     else:
-        P = precon_ilu(K, C, M, tau, fill_factor=fill_factor, timing=True)
-        #P = precon_amg(K, C, M, tau, tol=1e-1, timing=True)   
-    
-    X0      = np.zeros(B.shape, dtype=complex)
-    bnrm    = np.linalg.norm(B)
-    res     = convergenceHistory(plot_resnrm=plot_resnrm)
+        tau = tau*max(om.real)
         
-    X, info = megmres(A, B, X0=X0, tol=tol, maxit=maxit, M1=P, callback=res.callback)
-    plot_rel_convergence(res.resvec)
-       
+    eta = om**2/(om**2-tau2)
+    
+    # Define preconditioners
+    if rot:
+        P1 = rot_precon( eta, tau2 )
+    else:
+        P1 = __NoPrecond__()
+    if not iLU:
+        P2 = precon( K, C, M, tau, timing=True )
+    else:
+        P2 = precon_ilu( K, C, M, tau, fill_factor=fill_factor, timing=True )
+    
+    
+    A = vG_op(K, C, M, Om, P1)
+    B = (b*np.ones((len(om),1))).T   
+    
+    #vectorize_me(vG_op(K, C, M, Om, __NoPrecond__()), P2)
+    #vectorize_me(A, P2)
+    
+    # Run global GMRES
+    X0      = np.zeros(B.shape, dtype=complex)
+    res     = convergenceHistory(plot_resnrm=plot_resnrm)
+    X, info = megmres(A, B, X0=X0, tol=tol, maxit=maxit, M1=P2, callback=res.callback)
+    X = A.resub(X)
+        
+    plot_meconvergence(res.resvec)
+    I  = sparse.identity(M.shape[0])
+    AA = sparse.bmat([[1j*C,K],[I,None]])
+    BB = sparse.bmat([[M,None],[None,I]])
+    plot_circles_on_circle( AA, BB, om**2, tau**2, damping)
+    if rot:
+        plot_circles_on_circle( AA, BB, om**2, tau2, damping, rot=P1.R.todense() )
+    
     return X.T, len(res.resvec)
+
+

@@ -22,7 +22,8 @@ def makeplots( domain, geom, Lx, Lz, value, name, title, ndigits=0, index=None, 
 
   with plot.PyPlot( name, ndigits=ndigits, figsize=(10,10), index=index, imgtype=imgtype ) as plt:
     plt.mesh( points, colors, triangulate='bezier', edgecolors='none' )
-    plt.title(title, fontsize=20)
+    if imgtype is not 'eps':
+        plt.title(title, fontsize=20)
     plt.xlabel('x [m]', fontsize=20)
     plt.ylabel('z [m]', fontsize=20)
     plt.xticks( [0, 0.5*Lx, Lx], ['0', str(int(0.5*Lx)), str(int(Lx))], fontsize=20 )
@@ -92,7 +93,7 @@ def elast_mat(rho, cp, cs, lam, mu, ndims, nx, ny, nz, vec_basis, domain, geom, 
   # Build RHS
   if not block:
       C = 0*C
-      source_position = nx//2, nz//2
+      source_position = int(np.round(6.0/10.0*nx)), int(np.round(4.0/10.0*nz))
       rhs = point_eval(vec_basis, domain, geom, source_position)[:,-1] #+ point_eval(vec_basis, domain, geom, source_position)[:,0] 
   else:
       rhs = point_eval(vec_basis, domain, geom, source_position)[:,-1] 
@@ -108,7 +109,7 @@ def test_orig_problem(K, C, M, b, om, x):
         xs = x[:,j]
         r  = b - (K*xs + 1j*om[j]*(C*xs) - om[j]**2*(M*xs))
         relerr[j] = np.linalg.norm(r)/normb
-    print('Relative error of original problem:' +str(relerr))
+    print('Relative residual of original problem:' +str(relerr))
 
 
 def main( ndims=2,           # problem dimension (2,3) 
@@ -127,6 +128,7 @@ def main( ndims=2,           # problem dimension (2,3)
           tau_re=0.7,        # real(seed), if tau.real<0: take 'optimal' tau
           tau_im=-0.3,       # imag(seed)
           iLU=False,         # exact or inexact shif-and-invert
+          rot =True,         # spactral rotation for MatrEqn
           fill_factor=1.0,   # fill-in in iLU decomposition
           block=True,        # C=0 if False
           plots=False,       # plots on/off
@@ -200,7 +202,7 @@ def main( ndims=2,           # problem dimension (2,3)
   t0 = time.time()
   if solver_flag==0:           
       print('Use megmres')
-      sol, it = me_driver(K.toscipy().tocsc(), C.toscipy().tocsc(), M.toscipy().tocsc(), rhs, freq, tau, damping, tol, maxit, iLU, fill_factor, plot_resnrm)
+      sol, it = me_driver(K.toscipy().tocsc(), C.toscipy().tocsc(), M.toscipy().tocsc(), rhs, freq, tau, damping, tol, maxit, iLU, rot, fill_factor, plot_resnrm)
             
   elif solver_flag==1:
       print('Use poly_msgmres')
@@ -227,7 +229,7 @@ def main( ndims=2,           # problem dimension (2,3)
               t0_solve = time.time()
               sol[k,:] = lu.solve(rhs)
               print('solve:'+str(time.time()-t0_solve))
-          else:
+          else:             
               print('Use ILU+GMRES')
               class gmres_counter(object):
                   def __init__(self, disp=True):
@@ -250,6 +252,7 @@ def main( ndims=2,           # problem dimension (2,3)
               it = info
               print('GMRES time:'+str(time.time()-t0_solve))
               print('GMRES info:'+str(counter.niter)+' -- '+str(counter.resvec[-1]))
+              
           
   te = time.time()
   print('No iterations: '+str(it)+'     CPU time: '+str(te-t0))        
@@ -265,9 +268,9 @@ def main( ndims=2,           # problem dimension (2,3)
           
           for k in range(0,Nom):
               disp     = vec_basis.dot( sol[k,:] ) 
-              #disp_x   = disp[0].real
+              disp_x   = disp[0].real
               disp_z   = disp[-1].real
-              #makeplots( domain, geom, Lx, Lz, disp_x, 'disp_x'+str(k), 'u_x at {} Hz'.format(freq[k]), lineOn=False )
+              makeplots( domain, geom, Lx, Lz, disp_x, 'disp_x'+str(k), 'u_x at {} Hz'.format(freq[k]), lineOn=False )
               makeplots( domain, geom, Lx, Lz, disp_z, 'disp_z'+str(k), 'u_z at {} Hz'.format(freq[k]), lineOn=False )
               #makeplots( domain, geom, Lx, Lz, disp_x, 'disp_x'+str(k), 'u_x at {} Hz'.format(freq[k]), lineOn=False, imgtype='eps' )
               #makeplots( domain, geom, Lx, Lz, disp_z, 'disp_z'+str(k), 'u_z at {} Hz'.format(freq[k]), lineOn=False, imgtype='eps' )
