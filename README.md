@@ -4,9 +4,9 @@ Usage
 ------
 The code is stored in the subfolder `/python_code`. All experiments can be reproduced with a single run from the command line. For example:
 
-`python3 elast_squares.py --ndims=3 --dx=30 --dy=30 --dz=30 --freq=[1.0,9.0] --Nom=5 --degree=1 --damping=0.0 --maxit=300 --maxit_i=20
-                          --tol=1e-8 --tol_i=1e-1 --dg_pp=0 --tau_re=0.7 -tau_im=-0.3 iLU=True --fill_factor=10.0 --block=True
-                          --plots=True --plot_resnrm=True --solver_flag=2 --nprocs=8`
+`python3 elast_squares.py --ndims=2 --dx=2.5 --dy=2.5 --dz=2.5 --freq=[1.0,9.0] --Nom=5 --degree=1 --damping=0.005 --maxit=300 --maxit_i=20
+                          --tol=1e-8 --tol_i=1e-1 --dg_pp=3 --tau_re=0.7 --tau_im=-0.3 --iLU=True --fill_factor=10.0 --rot=True --block=True
+                          --plots=True --plot_resnrm=True --solver_flag=0 --nprocs=8`
 
 Dependencies
 -------------
