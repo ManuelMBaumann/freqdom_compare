@@ -20,6 +20,6 @@ The [author](http://www.manuelbaumann.de) is a PhD student in Numerical Analysis
 
 References
 ----------
-* Manuel Baumann and Martin B. Van Gijzen (2017). [Efficient iterative methods for multi-frequency wave propagation problems: A comparison study.](/literature/iccs17_report.pdf) In: Proceedings of INTERNATIONAL CONFERENCE ON COMPUTATIONAL SCIENCE
+* Manuel Baumann and Martin B. van Gijzen (2017). [Efficient iterative methods for multi-frequency wave propagation problems: A comparison study.](/literature/iccs17_report.pdf) In: Proceedings of INTERNATIONAL CONFERENCE ON COMPUTATIONAL SCIENCE
 
 [BvG17]: /literature/iccs17_report.pdf
