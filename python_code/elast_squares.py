@@ -13,7 +13,7 @@ from mskrylov import poly_driver, nested_driver
 from mekrylov import me_driver
 import time
 from math import pi
-import pyamg
+# import pyamg
 import scipy.sparse.linalg as spla
 
 @log.title
