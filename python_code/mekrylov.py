@@ -228,7 +228,7 @@ def me_driver(K, C, M, b, freq, tau, damping, tol, maxit, iLU, rot, fill_factor,
     
     if tau.real<0.0:
         #tau = opt_tau_anal( damping, min(om.real), max(om.real) )
-        tau2 = opt_tau_anal( 2.0*damping/(1.0-damping**2), (1.0-damping**2)*min((2.0*pi*freq)**2), (1.0-dampin**2)*max((2.0*pi*freq)**2) )
+        tau2 = opt_tau_anal( 2.0*damping/(1.0-damping**2), (1.0-damping**2)*min((2.0*pi*freq)**2), (1.0-damping**2)*max((2.0*pi*freq)**2) )
         tau  = np.sqrt(tau2)
     else:
         tau = tau*max(om.real)
