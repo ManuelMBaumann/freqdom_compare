@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/79431988.svg)](https://zenodo.org/badge/latestdoi/79431988)
+
 Python code for the numerical experiments presented in [BvG17].
 
 Usage
