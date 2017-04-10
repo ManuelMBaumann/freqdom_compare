@@ -7,7 +7,7 @@ from nutils import *
 from plot_misc import *
 import scipy.sparse.linalg as spla
 import time
-import pyamg
+#import pyamg
 
 class convergenceHistory:
     def __init__(self, plot_resnrm=False):
@@ -118,13 +118,8 @@ def poly_driver( K, C, M, rhs, freq, tau, damping, tol, maxit, dg_pp, iLU, fill_
                 I = sparse.identity(n)
                 A = sparse.bmat([[1j*C,K],[I,None]])
                 self.A = A
-                #self.K = K
-                #self.C = C
-                #self.M = M
                 self.type = complex
             def dot(self, x):
-                #n = len(x)
-                #return np.concatenate( (1j*self.C*x[:n//2]+self.K*x[n//2:],x[:n//2]) )
                 return self.A*x
             
         class shift_precon:
@@ -356,7 +351,6 @@ def poly_driver( K, C, M, rhs, freq, tau, damping, tol, maxit, dg_pp, iLU, fill_
         om  = (2.0*pi*freq*(1.0-1j*damping))**2
         tau = tau*max(om.real)
         if tau.real<0.0:
-            #tau = opt_tau_anal(damping, min(om.real), max(om.real) )
             tau = opt_tau_anal(2.0*damping/(1.0-damping**2), min(om.real), max(om.real))
         eta = om/(om-tau)
         
@@ -629,7 +623,6 @@ def nested_driver( K, C, M, rhs, freq, tau, damping, tol_i, tol_o, maxit_i, maxi
         base = om[-1]
         tau  = tau*max(om.real)
         if tau.real<0.0:
-            #tau = opt_tau_anal(damping, min(om.real), max(om.real) )
             tau = opt_tau_anal(2.0*damping/(1.0-damping**2), min(om.real), max(om.real))
         om  = om - base
         eta = om/(om-(tau-base))
@@ -641,12 +634,10 @@ def nested_driver( K, C, M, rhs, freq, tau, damping, tol_i, tol_o, maxit_i, maxi
             P  = shift_precon_ilu( K, C, M, tau, eta, fill_factor=fill_factor )
         b  = rhs
        
-       
       
-    res     = convergenceHistory(plot_resnrm=plot_resnrm)
+    res = convergenceHistory(plot_resnrm=plot_resnrm)
     y, it, resnrm = fmsgmres( A, P, b, eta, tau, tol_i, tol_o, maxit_i, maxit_o, callback=res.callback )
     x = P.resub( y )
-
     plot_msconvergence(resnrm)
 
     return x.T, it

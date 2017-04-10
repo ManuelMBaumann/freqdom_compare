@@ -25,18 +25,7 @@ class convergenceHistory:
 
 class __NoPrecond__(object):
     def solve(self,_X_): return _X_
-
-#def plot_rel_convergence(resvec):
-    #it = len(resvec)
-    #x_as = np.linspace(0,it,it)
-    
-    #with plot.PyPlot( 'conv_megmres', figsize=(10,10)) as plt:
-        #plt.semilogy(x_as, resvec[:]/resvec[0])
-        #plt.title('Convergence of global GMRES')       
-        #plt.xlabel('Number of operator applications')
-        #plt.ylabel('Relative residual norm')
-        #plt.ylim((1e-8,1))
-        #plt.grid()        
+   
 
 def vectorize_me(A, P=None):
     # simplified for right operators being diag matrices
@@ -64,6 +53,7 @@ def vectorize_me(A, P=None):
     if Pflag==1:
         with plot.PyPlot( 'blk_spy', ndigits=0 ) as plt:    
             plt.spy( A_blk, markersize=0.8, precision=0.05)
+
 
 def megmres(A, B, m=200, X0=None, tol=1e-8, maxit=None, M1=None, callback=None):
     size = B.shape
@@ -218,20 +208,18 @@ def me_driver(K, C, M, b, freq, tau, damping, tol, maxit, iLU, rot, fill_factor,
             self.R  = sparse.diags(rot,0)        
             self.IE = sparse.identity(len(eta)) - sparse.diags(eta,0)
         def solve(self, X):
-            #return (self.IE.dot(X.T)).T
             return (self.IE.dot(self.R.dot(X.T))).T
         
-
          
     om  = 2.0*pi*freq*(1.0-1j*damping)
     Om  = sparse.diags(om,0)
     
     if tau.real<0.0:
-        #tau = opt_tau_anal( damping, min(om.real), max(om.real) )
         tau2 = opt_tau_anal( 2.0*damping/(1.0-damping**2), (1.0-damping**2)*min((2.0*pi*freq)**2), (1.0-damping**2)*max((2.0*pi*freq)**2) )
         tau  = np.sqrt(tau2)
     else:
-        tau = tau*max(om.real)
+        tau  = tau*max(om.real)
+        tau2 = tau**2
         
     eta = om**2/(om**2-tau2)
     
@@ -267,5 +255,3 @@ def me_driver(K, C, M, b, freq, tau, damping, tol, maxit, iLU, rot, fill_factor,
         plot_circles_on_circle( AA, BB, om**2, tau2, damping, rot=P1.R.todense() )
     
     return X.T, len(res.resvec)
-
-
