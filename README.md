@@ -1,6 +1,6 @@
 [![DOI](https://zenodo.org/badge/79431988.svg)](https://zenodo.org/badge/latestdoi/79431988)
 
-Python code for the numerical experiments presented in [BvG17].
+Python code for the numerical experiments presented in [BvG17](http://www.sciencedirect.com/science/article/pii/S1877050917306294).
 
 Usage
 ------
@@ -22,6 +22,4 @@ The [author](http://www.manuelbaumann.de) is a PhD student in Numerical Analysis
 
 References
 ----------
-* Manuel Baumann and Martin B. van Gijzen (2017). [Efficient iterative methods for multi-frequency wave propagation problems: A comparison study.](/literature/iccs17_report.pdf) In: Proceedings of INTERNATIONAL CONFERENCE ON COMPUTATIONAL SCIENCE
-
-[BvG17]: /literature/iccs17_report.pdf
+* Manuel Baumann and Martin B. van Gijzen (2017). [Efficient iterative methods for multi-frequency wave propagation problems: A comparison study.](http://www.sciencedirect.com/science/article/pii/S1877050917306294) Procedia Computer Science, Volume 108, Pages 645-654.
